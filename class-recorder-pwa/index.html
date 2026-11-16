@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; worker-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self';" />
+  <meta name="theme-color" content="#005eb8" />
+  <meta name="description" content="Offline-first, universal classroom voice recorder for Scottish schools. 100% on-device storage, zero AI, universal WAV export." />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="ClassRecorder" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>ClassRecorder — Universal Local Voice Recorder</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+  <link rel="alternate icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="container">
+    <header class="site-header">
+      <div class="brand">
+        <img src="./icons/icon.svg" alt="" width="44" height="44" class="brand-icon" />
+        <div class="brand-titles">
+          <h1>ClassRecorder</h1>
+          <p class="brand-subtitle">Scottish Schools Offline Voice Recorder</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button id="installBtn" class="btn-primary" type="button" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 3v12" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          <span>Install App</span>
+        </button>
+
+        <button id="iosTipToggleBtn" class="btn-outline" type="button" aria-expanded="false" aria-controls="iosInstallBanner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+            <line x1="12" y1="18" x2="12.01" y2="18" />
+          </svg>
+          <span>iPad / Offline Tip</span>
+        </button>
+
+        <span id="offlineBadge" class="badge badge-offline" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="offlineBadgeText">Offline Ready</span>
+        </span>
+
+        <span class="badge" title="100% local IndexedDB storage. Zero cloud servers, zero AI transcription, zero tracking.">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <span>On-Device Only • Zero AI • Universal WAV</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- iPadOS / iOS Safari Add to Home Screen & Offline PWA Banner -->
+    <aside id="iosInstallBanner" class="install-banner" aria-label="Install instructions for iPad, iPhone, and browsers" hidden>
+      <div class="install-banner-text">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+          <polyline points="16 6 12 2 8 6" />
+          <line x1="12" y1="2" x2="12" y2="15" />
+        </svg>
+        <div>
+          <strong>Install for Full Offline Classroom Use:</strong>
+          On <strong>iPad / iPhone Safari</strong>, tap the <strong>Share</strong> icon in the address bar and choose <strong>Add to Home Screen</strong>. On <strong>Chromebooks / Laptops</strong>, click <strong>Install App</strong> (or the install icon in the address bar) to launch anytime without Wi-Fi.
+        </div>
+      </div>
+      <div class="install-banner-actions">
+        <button id="dismissIosBannerBtn" class="btn-outline btn-icon-only" type="button" aria-label="Dismiss install tip">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="layout">
+      <!-- Left Column: Record & On-Device Library -->
+      <section class="card" aria-labelledby="rec-heading">
+        <h2 id="rec-heading" class="section-title">
+          <span>1. Record Audio</span>
+        </h2>
+
+        <!-- Shown automatically when 2+ audio inputs exist (e.g., USB mic or headset) -->
+        <div id="micPickerWrap" hidden>
+          <label for="micSelect" class="field-label">Microphone Input</label>
+          <select id="micSelect"></select>
+        </div>
+
+        <!-- Shown when 0 or 1 mic is present so single-mic devices stay clutter-free -->
+        <div id="singleMicStatus" class="single-mic-note">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" y1="19" x2="12" y2="23" />
+          </svg>
+          <span id="singleMicLabel">Default device microphone ready</span>
+        </div>
+
+        <div class="recorder-box">
+          <div id="recStatePill" class="rec-state-pill" role="status" aria-live="polite">
+            <span class="rec-pulse" aria-hidden="true"></span>
+            <span id="recStateText">Ready to Record</span>
+          </div>
+          <div class="timer" id="timer" aria-live="off">00:00</div>
+          <div class="level-meter-track" aria-hidden="true" title="Microphone input level">
+            <div id="levelMeterFill" class="level-meter-fill"></div>
+          </div>
+        </div>
+
+        <button id="recordBtn" class="btn-record" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <circle cx="12" cy="12" r="7" />
+          </svg>
+          <span>Start Recording</span>
+          <kbd class="desktop-only-kbd">R</kbd>
+        </button>
+
+        <button id="stopBtn" class="btn-stop" type="button" hidden>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <rect x="6" y="6" width="12" height="12" rx="2" />
+          </svg>
+          <span>Stop Recording</span>
+          <kbd class="desktop-only-kbd">R</kbd>
+        </button>
+
+        <div class="shortcut-hint">
+          Keyboard shortcuts: <kbd class="kbd-dark">R</kbd> Start / Stop &bull; <kbd class="kbd-dark">Space</kbd> Play / Pause
+        </div>
+
+        <div class="rec-header">
+          <h3>
+            <span>Saved on This Device</span>
+            <span id="recCountBadge" class="count-pill">0</span>
+          </h3>
+          <button id="clearAllBtn" class="btn-danger" type="button" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              <path d="M10 11v6" />
+              <path d="M14 11v6" />
+            </svg>
+            <span>Clear All Recordings</span>
+          </button>
+        </div>
+
+        <ul id="recordingList" class="rec-list" aria-label="Saved recordings"></ul>
+
+        <!-- Device Storage Usage & Shared Classroom Trolley Info -->
+        <div class="storage-panel" aria-label="On-device storage usage">
+          <div class="storage-row">
+            <span id="storageUsageText">On-device storage: 0 KB used</span>
+            <span id="storagePersistBadge">Local DB</span>
+          </div>
+          <div class="storage-bar" aria-hidden="true">
+            <div id="storageBarFill" class="storage-bar-fill"></div>
+          </div>
+          <p class="shared-trolley-tip">
+            <strong>Shared Chromebook or iPad trolley?</strong> Download your <strong>.wav</strong> files first, then tap <strong>Clear All Recordings</strong> before returning the device.
+          </p>
+        </div>
+      </section>
+
+      <!-- Right Column: Playback, Unified Waveform Trim & Universal WAV Export -->
+      <section class="card" aria-labelledby="edit-heading">
+        <h2 id="edit-heading" class="section-title">
+          <span>2. Listen, Trim &amp; Save</span>
+        </h2>
+
+        <div id="emptyState" class="empty-state">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+          </svg>
+          <p>
+            Record a new clip or choose one from your device list to listen back, drag the trim handles to remove silence, or save a universal <strong>.wav</strong> file that opens natively on Chromebooks, iPads, Macs, and Windows PCs.
+          </p>
+        </div>
+
+        <div id="editorPanel" hidden>
+          <label for="clipTitle" class="field-label">Recording Name</label>
+          <input id="clipTitle" class="rename-input" type="text" maxlength="100" autocomplete="off" placeholder="Enter recording title..." />
+
+          <div class="clip-meta-bar">
+            <span id="clipDetailsText">Universal 16-bit PCM WAV</span>
+            <span id="selectionDurationText" class="time-readout">Selection: 0.0s</span>
+          </div>
+
+          <div class="playback-row">
+            <button id="playPauseBtn" class="btn-primary" type="button">
+              <svg id="playIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <polygon points="6 4 20 12 6 20 6 4" />
+              </svg>
+              <svg id="pauseIcon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" hidden>
+                <rect x="6" y="4" width="4" height="16" rx="1" />
+                <rect x="14" y="4" width="4" height="16" rx="1" />
+              </svg>
+              <span id="playPauseLabel">Play</span>
+              <kbd class="desktop-only-kbd">Space</kbd>
+            </button>
+            <audio id="audioPlayer" controls playsinline preload="metadata"></audio>
+          </div>
+
+          <div class="waveform-wrap">
+            <canvas
+              id="waveformCanvas"
+              tabindex="0"
+              role="img"
+              aria-label="Interactive audio waveform. Drag left and right handles with touch, stylus, trackpad, or mouse to set trim start and end."
+            ></canvas>
+          </div>
+
+          <div class="waveform-legend">
+            <span>Drag blue trim handles directly on the waveform (finger, Apple Pencil, trackpad, or mouse)</span>
+            <button id="resetTrimBtn" class="btn-outline" type="button" hidden>Reset Handles</button>
+          </div>
+
+          <div class="trim-controls-grid">
+            <div class="slider-group">
+              <div class="slider-group-header">
+                <label for="trimStart">Trim Start</label>
+                <span id="startLabel" class="time-readout">0.0s</span>
+              </div>
+              <div class="slider-nudge-row">
+                <button id="nudgeStartMinus" class="btn-nudge" type="button" aria-label="Nudge trim start back 0.1 seconds">-0.1s</button>
+                <input type="range" id="trimStart" min="0" max="10" step="0.1" value="0" />
+                <button id="nudgeStartPlus" class="btn-nudge" type="button" aria-label="Nudge trim start forward 0.1 seconds">+0.1s</button>
+              </div>
+            </div>
+
+            <div class="slider-group">
+              <div class="slider-group-header">
+                <label for="trimEnd">Trim End</label>
+                <span id="endLabel" class="time-readout">0.0s</span>
+              </div>
+              <div class="slider-nudge-row">
+                <button id="nudgeEndMinus" class="btn-nudge" type="button" aria-label="Nudge trim end back 0.1 seconds">-0.1s</button>
+                <input type="range" id="trimEnd" min="0" max="10" step="0.1" value="10" />
+                <button id="nudgeEndPlus" class="btn-nudge" type="button" aria-label="Nudge trim end forward 0.1 seconds">+0.1s</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="previewTrimBtn" class="btn-outline" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span id="previewTrimLabel">Preview Selection</span>
+            </button>
+
+            <button id="applyTrimBtn" class="btn-outline" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="6" cy="6" r="3" />
+                <circle cx="6" cy="18" r="3" />
+                <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                <line x1="8.12" y1="8.12" x2="12" y2="12" />
+              </svg>
+              <span>Crop Selection</span>
+            </button>
+
+            <button id="downloadBtn" class="btn-primary" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              <span>Save .WAV File</span>
+            </button>
+
+            <button id="deleteBtn" class="btn-danger" type="button">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+              </svg>
+              <span>Delete</span>
+            </button>
+          </div>
+
+          <div id="statusToast" class="status-toast" role="status" aria-live="polite" hidden></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Mobile (< 640px) Thumb-Friendly Bottom Control Bar -->
+  <nav class="mobile-thumb-bar" aria-label="Quick thumb controls">
+    <button id="mobileRecordBtn" class="btn-record" type="button">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <circle cx="12" cy="12" r="7" />
+      </svg>
+      <span id="mobileRecordLabel">Record</span>
+    </button>
+    <button id="mobilePlayBtn" class="btn-outline" type="button" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <polygon points="6 4 20 12 6 20 6 4" />
+      </svg>
+      <span id="mobilePlayLabel">Play Clip</span>
+    </button>
+  </nav>
+
+  <!-- Accessible Confirmation Modal (Shared Trolley Clear All & Single Delete) -->
+  <dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmDialogTitle" aria-describedby="confirmDialogMsg">
+    <h3 id="confirmDialogTitle" class="dialog-title">Confirm Action</h3>
+    <p id="confirmDialogMsg" class="dialog-msg">Are you sure?</p>
+    <div class="dialog-actions">
+      <button id="confirmCancelBtn" class="btn-outline" type="button">Cancel</button>
+      <button id="confirmAcceptBtn" class="btn-danger" type="button">Delete</button>
+    </div>
+  </dialog>
+
+  <script src="./app.js" defer></script>
+</body>
+</html>
